@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Wellness Check-in</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --white: #FFFFFF;
+    --off-white: #F7F6F3;
+    --light-gray: #EEECE8;
+    --mid-gray: #D4D0C8;
+    --text-dark: #1A1A18;
+    --text-mid: #5A5852;
+    --text-light: #9A9690;
+    --accent: #2D5A3D;
+    --accent-light: #E8F0EB;
+    --accent-mid: #4A7C5F;
+    --danger: #C0392B;
+    --warning: #D4830A;
+    --success: #2D5A3D;
+    --score-1: #2D5A3D;
+    --score-2: #5A8A3C;
+    --score-3: #D4830A;
+    --score-4: #C05A1A;
+    --score-5: #C0392B;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    width: 100%; height: 100%;
+    font-family: 'DM Sans', sans-serif;
+    background: var(--off-white);
+    overflow: hidden;
+    touch-action: manipulation;
+  }
+
+  /* ── SCREENS ── */
+  .screen {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.5s ease, transform 0.5s ease;
+    transform: translateY(20px);
+  }
+  .screen.active {
+    opacity: 1; pointer-events: all; transform: translateY(0);
+  }
+  .screen.exit {
+    opacity: 0; transform: translateY(-20px);
+  }
+
+  /* ── SCREEN: WELCOME ── */
+  #screen-welcome {
+    background: var(--white);
+    justify-content: center; align-items: center;
+    gap: 48px;
+    padding: 60px;
+  }
+  .welcome-logo {
+    display: flex; flex-direction: column; align-items: center; gap: 16px;
+  }
+  .logo-mark {
+    width: 80px; height: 80px;
+    border: 2px solid var(--accent);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    position: relative;
+  }
+  .logo-mark::before {
+    content: '';
+    width: 50px; height: 50px;
+    border-radius: 50%;
+    background: var(--accent-light);
+    position: absolute;
+  }
+  .logo-mark svg { position: relative; z-index: 1; }
+  .welcome-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 48px; font-weight: 500;
+    color: var(--text-dark);
+    letter-spacing: -1px;
+    text-align: center;
+  }
+  .welcome-subtitle {
+    font-size: 18px; color: var(--text-mid);
+    font-weight: 300; letter-spacing: 0.5px;
+    text-align: center;
+  }
+  .welcome-date {
+    font-size: 15px; color: var(--text-light);
+    letter-spacing: 1px; text-transform: uppercase;
+  }
+  .btn-start {
+    background: var(--text-dark);
+    color: var(--white);
+    border: none; border-radius: 100px;
+    padding: 20px 64px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 18px; font-weight: 500;
+    letter-spacing: 0.3px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 20px rgba(26,26,24,0.15);
+  }
+  .btn-start:active { transform: scale(0.97); }
+
+  /* ── SCREEN: NAME SELECTION ── */
+  #screen-name {
+    background: var(--white);
+    padding: 0;
+  }
+  .name-header {
+    padding: 60px 64px 32px;
+    border-bottom: 1px solid var(--light-gray);
+    flex-shrink: 0;
+  }
+  .step-label {
+    font-size: 12px; letter-spacing: 2px; text-transform: uppercase;
+    color: var(--text-light); margin-bottom: 12px;
+  }
+  .screen-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 38px; font-weight: 500;
+    color: var(--text-dark); letter-spacing: -0.5px;
+    margin-bottom: 8px;
+  }
+  .screen-desc { font-size: 16px; color: var(--text-mid); font-weight: 300; }
+
+  .search-box {
+    margin: 0 64px;
+    padding: 28px 0 20px;
+    position: relative;
+    flex-shrink: 0;
+  }
+  .search-input {
+    width: 100%;
+    padding: 16px 20px 16px 52px;
+    border: 1.5px solid var(--mid-gray);
+    border-radius: 12px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 17px; color: var(--text-dark);
+    background: var(--off-white);
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .search-input:focus { border-color: var(--accent); background: var(--white); }
+  .search-icon {
+    position: absolute; left: 20px; top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-light);
+  }
+
+  .names-list {
+    flex: 1; overflow-y: auto;
+    padding: 8px 64px 40px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .names-list::-webkit-scrollbar { display: none; }
+
+  .name-item {
+    padding: 18px 20px;
+    border-radius: 12px;
+    font-size: 18px; color: var(--text-dark);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: flex; align-items: center; gap: 16px;
+    border-bottom: 1px solid var(--light-gray);
+  }
+  .name-item:last-child { border-bottom: none; }
+  .name-item:active, .name-item.selected {
+    background: var(--accent-light);
+    color: var(--accent);
+    border-bottom-color: transparent;
+  }
+  .name-avatar {
+    width: 44px; height: 44px; border-radius: 50%;
+    background: var(--light-gray);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; font-weight: 500; color: var(--text-mid);
+    flex-shrink: 0;
+    transition: all 0.15s;
+  }
+  .name-item.selected .name-avatar {
+    background: var(--accent); color: var(--white);
+  }
+  .name-text { flex: 1; }
+  .name-check { color: var(--accent); opacity: 0; transition: opacity 0.15s; }
+  .name-item.selected .name-check { opacity: 1; }
+
+  .name-footer {
+    padding: 24px 64px 40px;
+    border-top: 1px solid var(--light-gray);
+    flex-shrink: 0;
+  }
+  .btn-continue {
+    width: 100%; padding: 20px;
+    background: var(--text-dark); color: var(--white);
+    border: none; border-radius: 14px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 18px; font-weight: 500;
+    cursor: pointer; opacity: 0.3;
+    transition: all 0.2s ease;
+    pointer-events: none;
+  }
+  .btn-continue.enabled { opacity: 1; pointer-events: all; }
+  .btn-continue.enabled:active { transform: scale(0.99); background: var(--accent); }
+
+  /* ── SCREEN: QUESTIONS ── */
+  #screen-questions {
+    background: var(--off-white);
+    padding: 0;
+  }
+  .questions-header {
+    padding: 52px 64px 28px;
+    background: var(--white);
+    border-bottom: 1px solid var(--light-gray);
+    flex-shrink: 0;
+    display: flex; align-items: flex-start; justify-content: space-between;
+  }
+  .header-left {}
+  .greeting {
+    font-size: 14px; letter-spacing: 1.5px; text-transform: uppercase;
+    color: var(--text-light); margin-bottom: 8px;
+  }
+  .athlete-name {
+    font-family: 'Playfair Display', serif;
+    font-size: 34px; font-weight: 500; color: var(--text-dark);
+  }
+  .progress-area { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+  .progress-text { font-size: 13px; color: var(--text-light); }
+  .progress-dots { display: flex; gap: 8px; }
+  .dot {
+    width: 32px; height: 4px; border-radius: 2px;
+    background: var(--light-gray); transition: background 0.3s;
+  }
+  .dot.filled { background: var(--accent); }
+
+  .questions-body {
+    flex: 1; overflow-y: auto;
+    padding: 40px 64px;
+    display: flex; flex-direction: column; gap: 28px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .questions-body::-webkit-scrollbar { display: none; }
+
+  .question-card {
+    background: var(--white);
+    border-radius: 20px;
+    padding: 36px 40px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+    transition: box-shadow 0.2s;
+  }
+  .question-card.answered { box-shadow: 0 2px 12px rgba(45,90,61,0.1); border: 1.5px solid var(--accent-light); }
+
+  .q-icon-row {
+    display: flex; align-items: center; gap: 16px; margin-bottom: 24px;
+  }
+  .q-icon {
+    width: 52px; height: 52px; border-radius: 14px;
+    background: var(--off-white);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 26px;
+  }
+  .q-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 24px; font-weight: 500; color: var(--text-dark);
+  }
+  .q-subtitle { font-size: 14px; color: var(--text-light); margin-top: 3px; }
+
+  .score-row {
+    display: flex; gap: 12px;
+  }
+  .score-btn {
+    flex: 1; aspect-ratio: 1;
+    border: 2px solid var(--light-gray);
+    border-radius: 16px;
+    background: var(--off-white);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  .score-btn:active { transform: scale(0.95); }
+  .score-num {
+    font-family: 'Playfair Display', serif;
+    font-size: 28px; font-weight: 600;
+    color: var(--text-dark);
+    transition: color 0.2s;
+  }
+  .score-label {
+    font-size: 10px; letter-spacing: 0.5px;
+    color: var(--text-light); text-align: center;
+    line-height: 1.3;
+    transition: color 0.2s;
+    text-transform: uppercase;
+  }
+
+  .score-btn[data-val="1"].selected { background: #E8F5EC; border-color: var(--score-1); }
+  .score-btn[data-val="2"].selected { background: #EEF5E8; border-color: var(--score-2); }
+  .score-btn[data-val="3"].selected { background: #FDF3E3; border-color: var(--score-3); }
+  .score-btn[data-val="4"].selected { background: #FBF0E8; border-color: var(--score-4); }
+  .score-btn[data-val="5"].selected { background: #FBEAE8; border-color: var(--score-5); }
+
+  .score-btn[data-val="1"].selected .score-num { color: var(--score-1); }
+  .score-btn[data-val="2"].selected .score-num { color: var(--score-2); }
+  .score-btn[data-val="3"].selected .score-num { color: var(--score-3); }
+  .score-btn[data-val="4"].selected .score-num { color: var(--score-4); }
+  .score-btn[data-val="5"].selected .score-num { color: var(--score-5); }
+
+  .score-indicator {
+    width: 100%; height: 4px; position: absolute; bottom: 0; left: 0;
+    border-radius: 0 0 14px 14px;
+    opacity: 0; transition: opacity 0.2s;
+  }
+  .score-btn[data-val="1"].selected .score-indicator { background: var(--score-1); opacity: 1; }
+  .score-btn[data-val="2"].selected .score-indicator { background: var(--score-2); opacity: 1; }
+  .score-btn[data-val="3"].selected .score-indicator { background: var(--score-3); opacity: 1; }
+  .score-btn[data-val="4"].selected .score-indicator { background: var(--score-4); opacity: 1; }
+  .score-btn[data-val="5"].selected .score-indicator { background: var(--score-5); opacity: 1; }
+
+  .scale-legend {
+    display: flex; justify-content: space-between;
+    margin-top: 12px; padding: 0 4px;
+  }
+  .legend-item { font-size: 12px; color: var(--text-light); display: flex; align-items: center; gap: 4px; }
+
+  .questions-footer {
+    padding: 20px 64px 44px;
+    background: var(--white);
+    border-top: 1px solid var(--light-gray);
+    flex-shrink: 0;
+  }
+  .btn-submit {
+    width: 100%; padding: 20px;
+    background: var(--text-dark); color: var(--white);
+    border: none; border-radius: 14px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 18px; font-weight: 500;
+    cursor: pointer; opacity: 0.3;
+    transition: all 0.2s ease;
+    pointer-events: none;
+    display: flex; align-items: center; justify-content: center; gap: 12px;
+  }
+  .btn-submit.enabled { opacity: 1; pointer-events: all; }
+  .btn-submit.enabled:active { transform: scale(0.99); background: var(--accent); }
+  .btn-submit.loading { background: var(--accent); opacity: 1; }
+
+  /* ── SCREEN: SUCCESS ── */
+  #screen-success {
+    background: var(--white);
+    justify-content: center; align-items: center;
+    gap: 40px; padding: 80px;
+    text-align: center;
+  }
+  .success-ring {
+    width: 120px; height: 120px;
+    border-radius: 50%;
+    background: var(--accent-light);
+    display: flex; align-items: center; justify-content: center;
+    animation: ringIn 0.6s ease both;
+  }
+  @keyframes ringIn {
+    from { transform: scale(0.5); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+  .success-check { font-size: 52px; animation: checkIn 0.4s 0.3s ease both; }
+  @keyframes checkIn { from { transform: scale(0); } to { transform: scale(1); } }
+
+  .success-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 44px; font-weight: 500; color: var(--text-dark);
+    letter-spacing: -0.5px;
+    animation: fadeUp 0.5s 0.4s ease both;
+  }
+  .success-name {
+    color: var(--accent);
+  }
+  .success-desc {
+    font-size: 18px; color: var(--text-mid); font-weight: 300;
+    max-width: 480px; line-height: 1.6;
+    animation: fadeUp 0.5s 0.5s ease both;
+  }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+
+  .success-scores {
+    display: flex; gap: 24px;
+    animation: fadeUp 0.5s 0.6s ease both;
+  }
+  .score-chip {
+    background: var(--off-white); border-radius: 16px;
+    padding: 20px 28px; text-align: center;
+    border: 1.5px solid var(--light-gray);
+  }
+  .chip-label { font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: var(--text-light); margin-bottom: 8px; }
+  .chip-val {
+    font-family: 'Playfair Display', serif;
+    font-size: 36px; font-weight: 500;
+  }
+
+  .btn-new {
+    background: var(--text-dark); color: var(--white);
+    border: none; border-radius: 100px;
+    padding: 20px 56px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 18px; font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    animation: fadeUp 0.5s 0.7s ease both;
+  }
+  .btn-new:active { transform: scale(0.97); background: var(--accent); }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%) translateY(80px);
+    background: var(--text-dark); color: var(--white);
+    padding: 16px 28px; border-radius: 12px;
+    font-size: 15px; font-weight: 400;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+    opacity: 0; z-index: 999; white-space: nowrap;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+  .toast.error { background: var(--danger); }
+  .toast.success-t { background: var(--accent); }
+
+  /* ── SPINNER ── */
+  .spinner {
+    width: 20px; height: 20px;
+    border: 2.5px solid rgba(255,255,255,0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    display: none;
+  }
+  .loading .spinner { display: block; }
+  .loading .btn-text { display: none; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<!-- ══ SCREEN: WELCOME ══ -->
+<div id="screen-welcome" class="screen active">
+  <div class="welcome-logo">
+    <div class="logo-mark">
+      <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+        <path d="M14 4C14 4 8 8 8 14C8 17.3 10.7 20 14 20C17.3 20 20 17.3 20 14C20 8 14 4 14 4Z" fill="#2D5A3D"/>
+        <path d="M14 20V26" stroke="#2D5A3D" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <div class="welcome-title">Wellness<br>Check-in</div>
+    <div class="welcome-subtitle">Registro diario de bienestar</div>
+  </div>
+  <div class="welcome-date" id="welcome-date"></div>
+  <button class="btn-start" onclick="goToName()">Comenzar →</button>
+</div>
+
+<!-- ══ SCREEN: NAME ══ -->
+<div id="screen-name" class="screen">
+  <div class="name-header">
+    <div class="step-label">Paso 1 de 2</div>
+    <div class="screen-title">¿Quién eres?</div>
+    <div class="screen-desc">Selecciona tu nombre de la lista</div>
+  </div>
+  <div class="search-box">
+    <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+    </svg>
+    <input class="search-input" type="text" placeholder="Buscar nombre..." id="search-input" oninput="filterNames(this.value)">
+  </div>
+  <div class="names-list" id="names-list"></div>
+  <div class="name-footer">
+    <button class="btn-continue" id="btn-continue" onclick="goToQuestions()">Continuar →</button>
+  </div>
+</div>
+
+<!-- ══ SCREEN: QUESTIONS ══ -->
+<div id="screen-questions" class="screen">
+  <div class="questions-header">
+    <div class="header-left">
+      <div class="greeting">Bienvenido/a</div>
+      <div class="athlete-name" id="athlete-name-display">—</div>
+    </div>
+    <div class="progress-area">
+      <div class="progress-text" id="progress-text">0 de 3 completados</div>
+      <div class="progress-dots">
+        <div class="dot" id="dot-0"></div>
+        <div class="dot" id="dot-1"></div>
+        <div class="dot" id="dot-2"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="questions-body">
+
+    <!-- Q1: Dolor Muscular -->
+    <div class="question-card" id="card-0">
+      <div class="q-icon-row">
+        <div class="q-icon">💪</div>
+        <div>
+          <div class="q-title">Dolor Muscular</div>
+          <div class="q-subtitle">¿Cómo están tus músculos hoy?</div>
+        </div>
+      </div>
+      <div class="score-row" id="scores-0">
+        <button class="score-btn" data-q="0" data-val="1" onclick="selectScore(this)">
+          <span class="score-num">1</span>
+          <span class="score-label">Sin dolor</span>
+          <div class="score-indicator"></div>
+        </button>
+        <button class="score-btn" data-q="0" data-val="2" onclick="selectScore(this)">
+          <span class="score-num">2</span>
+          <span class="score-label">Muy leve</span>
+          <div class="score-indicator"></div>
+        </button>
+        <button class="score-btn" data-q="0" data-val="3" onclick="selectScore(this)">
+          <span class="score-num">3</span>
+          <span class="score-label">Moderado</span>
+          <div class="score-indicator"></div>
+        </button>
+        <button class="score-btn" data-q="0" data-val="4" onclick="selectScore(this)">
+          <span class="score-num">4</span>
+          <span class="score-label">Intenso</span>
+          <div class="score-indicator"></div>
+        </button>
+        <button class="score-btn" data-q="0" data-val="5" onclick="selectScore(this)">
+          <span class="score-num">5</span>
+          <span class="score-label">Muy intenso</span>
+          <div class="score-indicator"></div>
+        </button>
+      </div>
+      <div class="scale-legend">
+        <span class="legend-item">🟢 Óptimo</span>
+        <span class="legend-item">🔴 Crítico</span>
+      </div>
+    </div>
+
+    <!-- Q2: Calidad del Sueño -->
+    <div class="question-card" id="card-1">
+      <div class="q-icon-row">
+        <div class="q-icon">🌙</div>
+        <div>
+          <div class="q-title">Calidad del Sueño</div>
+          <div class="q-subtitle">¿Cómo dormiste anoche?</div>
+        </div>
+      </div>
+      <div class="score-row" id="scores-1">
+        <button class="score-btn" data-q="1" data-val="1" onclick="selectScore(this)">
+          <span class="score-num">1</span>
+          <span class="score-label">Muy bien</span>
+          <div class="score-indicator"></div>
+        </button>
+        <button class="score-btn" data-q="1" data-val="2" onclick="selectScore(this)">
+          <span class="score-num">2</span>
+          <span class="score-label">Bien</span>
+          <div class="score-indicator"></div>
+        </button>
+        <button class="score-btn" data-q="1" data-val="3" onclick="selectScore(this)">
+          <span class="score-num">3</span>
+          <span class="score-label">Regular</span>
+          <div class="score-indicator"></div>
+        </button>
+        <button class="score-btn" data-q="1" data-val="4" onclick="selectScore(this)">
+          <span class="score-num">4</span>
+          <span class="score-label">Mal</span>
+          <div class="score-indicator"></div>
+        </button>
+        <button class="score-btn" data-q="1" data-val="5" onclick="selectScore(this)">
+          <span class="score-num">5</span>
+          <span class="score-label">Muy mal</span>
+          <div class="score-indicator"></div>
+        </button>
+      </div>
+      <div class="scale-legend">
+        <span class="legend-item">🟢 Óptimo</span>
+        <span class="legend-item">🔴 Crítico</span>
+      </div>
+    </div>
+
+    <!-- Q3: Fatiga -->
+    <div class="question-card" id="card-2">
+      <div class="q-icon-row">
+        <div class="q-icon">⚡</div>
+        <div>
+          <div class="q-title">Fatiga</div>
+          <div class="q-subtitle">¿Cuál es tu nivel de energía?</div>
+        </div>
+      </div>
+      <div class="score-row" id="scores-2">
+        <button class="score-btn" data-q="2" data-val="1" onclick="selectScore(this)">
+          <span class="score-num">1</span>
+          <span class="score-label">Sin fatiga</span>
+          <div class="score-indicator"></div>
+        </button>
+        <button class="score-btn" data-q="2" data-val="2" onclick="selectScore(this)">
+          <span class="score-num">2</span>
+          <span class="score-label">Leve</span>
+          <div class="score-indicator"></div>
+        </button>
+        <button class="score-btn" data-q="2" data-val="3" onclick="selectScore(this)">
+          <span class="score-num">3</span>
+          <span class="score-label">Moderada</span>
+          <div class="score-indicator"></div>
+        </button>
+        <button class="score-btn" data-q="2" data-val="4" onclick="selectScore(this)">
+          <span class="score-num">4</span>
+          <span class="score-label">Alta</span>
+          <div class="score-indicator"></div>
+        </button>
+        <button class="score-btn" data-q="2" data-val="5" onclick="selectScore(this)">
+          <span class="score-num">5</span>
+          <span class="score-label">Agotado</span>
+          <div class="score-indicator"></div>
+        </button>
+      </div>
+      <div class="scale-legend">
+        <span class="legend-item">🟢 Óptimo</span>
+        <span class="legend-item">🔴 Crítico</span>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="questions-footer">
+    <button class="btn-submit" id="btn-submit" onclick="submitData()">
+      <div class="spinner"></div>
+      <span class="btn-text">Registrar datos →</span>
+    </button>
+  </div>
+</div>
+
+<!-- ══ SCREEN: SUCCESS ══ -->
+<div id="screen-success" class="screen">
+  <div class="success-ring">
+    <span class="success-check">✓</span>
+  </div>
+  <div class="success-title">¡Listo, <span class="success-name" id="success-name">—</span>!</div>
+  <div class="success-desc">Tu registro ha sido guardado correctamente. Que tengas un gran entrenamiento hoy.</div>
+  <div class="success-scores" id="success-scores"></div>
+  <button class="btn-new" onclick="resetApp()">Nuevo registro →</button>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ══════════════════════════════════
+// CONFIGURACIÓN — EDITAR AQUÍ
+// ══════════════════════════════════
+
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxLE17OVDefZaZdFIDuzz8cDDNoEHGTGZtjaQUlp4QS6IgMC-dVJxi50ARSZJtr_zuX/exec";
+
+let ATHLETES = [];
+
+// ══════════════════════════════════
+// ESTADO DE LA APP
+// ══════════════════════════════════
+let selectedName = null;
+let scores = [null, null, null]; // [Dolor Muscular, Calidad Sueño, Fatiga]
+
+// ══════════════════════════════════
+// INIT
+// ══════════════════════════════════
+async function init() {
+  // Fecha en bienvenida
+  const now = new Date();
+  const opts = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+  document.getElementById('welcome-date').textContent =
+    now.toLocaleDateString('es-ES', opts).replace(/^\w/, c => c.toUpperCase());
+
+  // Cargar atletas desde Google Sheet
+  try {
+    const res = await fetch(GOOGLE_SCRIPT_URL);
+    const data = await res.json();
+    ATHLETES = data.sort((a, b) => a.localeCompare(b, 'es'));
+  } catch (e) {
+    ATHLETES = [];
+    showToast('No se pudo cargar la lista de usuarios', 'error');
+  }
+
+  renderNamesList(ATHLETES);
+}
+
+function renderNamesList(list) {
+  const container = document.getElementById('names-list');
+  container.innerHTML = '';
+  if (list.length === 0) {
+    container.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-light);font-size:16px;">Sin resultados</div>';
+    return;
+  }
+  list.forEach(name => {
+    const div = document.createElement('div');
+    div.className = 'name-item' + (name === selectedName ? ' selected' : '');
+    div.innerHTML = `
+      <div class="name-avatar">${name.split(' ').map(w=>w[0]).slice(0,2).join('')}</div>
+      <div class="name-text">${name}</div>
+      <svg class="name-check" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <polyline points="20 6 9 17 4 12"/>
+      </svg>`;
+    div.onclick = () => selectName(name);
+    container.appendChild(div);
+  });
+}
+
+function filterNames(q) {
+  const filtered = ATHLETES.filter(n => n.toLowerCase().includes(q.toLowerCase()));
+  renderNamesList(filtered);
+}
+
+function selectName(name) {
+  selectedName = name;
+  renderNamesList(document.getElementById('search-input').value ?
+    ATHLETES.filter(n => n.toLowerCase().includes(document.getElementById('search-input').value.toLowerCase())) :
+    ATHLETES);
+  const btn = document.getElementById('btn-continue');
+  btn.classList.add('enabled');
+  btn.textContent = `Continuar como ${name} →`;
+}
+
+// ══════════════════════════════════
+// NAVEGACIÓN
+// ══════════════════════════════════
+function showScreen(id) {
+  document.querySelectorAll('.screen.active').forEach(s => {
+    s.classList.remove('active');
+    s.classList.add('exit');
+    setTimeout(() => s.classList.remove('exit'), 600);
+  });
+  setTimeout(() => {
+    document.getElementById(id).classList.add('active');
+  }, 100);
+}
+
+function goToName() { showScreen('screen-name'); }
+
+function goToQuestions() {
+  if (!selectedName) return;
+  document.getElementById('athlete-name-display').textContent = selectedName;
+  showScreen('screen-questions');
+}
+
+// ══════════════════════════════════
+// SCORES
+// ══════════════════════════════════
+const scoreLabels = ['Dolor Muscular', 'Calidad del Sueño', 'Fatiga'];
+const scoreColors = ['', '#2D5A3D', '#5A8A3C', '#D4830A', '#C05A1A', '#C0392B'];
+
+function selectScore(btn) {
+  const q = parseInt(btn.dataset.q);
+  const val = parseInt(btn.dataset.val);
+  scores[q] = val;
+
+  // Update UI
+  document.querySelectorAll(`.score-btn[data-q="${q}"]`).forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+
+  // Card answered state
+  const filled = scores.filter(s => s !== null).length;
+  document.getElementById(`card-${q}`).classList.add('answered');
+
+  // Progress dots
+  for (let i = 0; i < 3; i++) {
+    document.getElementById(`dot-${i}`).classList.toggle('filled', scores[i] !== null);
+  }
+  document.getElementById('progress-text').textContent = `${filled} de 3 completados`;
+
+  // Enable submit
+  const submitBtn = document.getElementById('btn-submit');
+  if (scores.every(s => s !== null)) {
+    submitBtn.classList.add('enabled');
+  }
+}
+
+// ══════════════════════════════════
+// SUBMIT → GOOGLE SHEETS
+// ══════════════════════════════════
+async function submitData() {
+  if (!scores.every(s => s !== null)) return;
+
+  const btn = document.getElementById('btn-submit');
+  btn.classList.add('loading');
+
+  const now = new Date();
+  const fecha = now.toLocaleDateString('es-ES');
+  const hora = now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+
+  const payload = {
+    nombre: selectedName,
+    fecha: fecha,
+    hora: hora,
+    dolor_muscular: scores[0],
+    calidad_sueno: scores[1],
+    fatiga: scores[2]
+  };
+
+  try {
+    await fetch(GOOGLE_SCRIPT_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    showSuccess();
+  } catch (err) {
+    btn.classList.remove('loading');
+    showToast('Error de conexión. Inténtalo de nuevo.', 'error');
+  }
+}
+
+function showSuccess() {
+  document.getElementById('success-name').textContent = selectedName.split(' ')[0];
+
+  const labels = ['Dolor', 'Sueño', 'Fatiga'];
+  const colors = ['', '#2D5A3D', '#5A8A3C', '#D4830A', '#C05A1A', '#C0392B'];
+  const container = document.getElementById('success-scores');
+  container.innerHTML = labels.map((l, i) => `
+    <div class="score-chip">
+      <div class="chip-label">${l}</div>
+      <div class="chip-val" style="color:${colors[scores[i]]}">${scores[i]}</div>
+    </div>`).join('');
+
+  showScreen('screen-success');
+}
+
+function resetApp() {
+  selectedName = null;
+  scores = [null, null, null];
+
+  // Reset UI
+  document.getElementById('search-input').value = '';
+  // Recargar lista fresca desde el Sheet
+  fetch(GOOGLE_SCRIPT_URL)
+    .then(r => r.json())
+    .then(data => { ATHLETES = data.sort((a,b) => a.localeCompare(b,'es')); renderNamesList(ATHLETES); })
+    .catch(() => renderNamesList(ATHLETES));
+  document.getElementById('btn-continue').classList.remove('enabled');
+  document.getElementById('btn-continue').textContent = 'Continuar →';
+
+  for (let i = 0; i < 3; i++) {
+    document.getElementById(`dot-${i}`).classList.remove('filled');
+    document.getElementById(`card-${i}`).classList.remove('answered');
+    document.querySelectorAll(`.score-btn[data-q="${i}"]`).forEach(b => b.classList.remove('selected'));
+  }
+  document.getElementById('progress-text').textContent = '0 de 3 completados';
+  document.getElementById('btn-submit').classList.remove('enabled', 'loading');
+
+  showScreen('screen-welcome');
+}
+
+// ══════════════════════════════════
+// TOAST
+// ══════════════════════════════════
+function showToast(msg, type='') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (type ? ' ' + type : '');
+  setTimeout(() => t.className = 'toast', 3000);
+}
+
+// ══════════════════════════════════
+// START
+// ══════════════════════════════════
+init();
+</script>
+</body>
+</html>
